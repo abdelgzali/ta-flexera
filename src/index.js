@@ -3,7 +3,6 @@ import ReactDOM from "react-dom";
 import ls from "local-storage"; // package for simpler local storage access
 import "./index.css";
 
-// COMPONENT IMPORTS
 import Repo from "./components/Repo";
 
 ReactDOM.render(
@@ -14,63 +13,61 @@ ReactDOM.render(
 );
 
 function App() {
-  const [repos, setRepos] = useState([]);
-  const [page, setPage] = useState(1);
+  // initial states
+  const initialPage = 1;
+  const initialRepoData = ls.get(initialPage) || [];
 
-  // handles repos data updates, fetches new data from API when no cached data found
-  const handleRepos = async () => {
-    // check local storage for data before fetching
-    if (!ls.get(page)) {
-      try {
-        const req = await fetch(
-          `https://api.github.com/search/repositories?sort=stars&q=javascript&per_page=10&page=${page}`
-        );
-        const res = await req.json();
-        const reposArr = res.items;
-        reposArr.forEach((repo) => {
-          repo.flagged = false;
-        });
-        setRepos(reposArr);
-      } catch (err) {
-        console.log(err);
-      }
-    } else {
-      setRepos(ls.get(page)); // update state from local storage if data found
+  const [repos, setRepos] = useState(initialRepoData);
+  const [page, setPage] = useState(initialPage);
+
+  const [loading, setLoading] = useState(false);
+
+  // given page number, fetch data from API resource
+  const fetchRepos = async (pageNum) => {
+    setLoading(true);   // toggle loading screen when fetching new data
+    try {
+      const req = await fetch(
+        `https://api.github.com/search/repositories?sort=stars&q=javascript&per_page=10&page=${pageNum}`
+      );
+      const res = await req.json();
+      // map repo array, add property for flag feature
+      const reposArr = res.items.length ? res.items.map((repo) => {
+        repo.flagged = false;
+        return repo
+      }) : [];
+      setRepos(reposArr);
+      ls.set(pageNum, reposArr);  // update local storage
+    } catch (err) {
+      console.log(err);
     }
+    setLoading(false);
   };
 
   const handlePagination = (newPageIndex) => {
     if (newPageIndex >= 1) setPage(newPageIndex);
   };
 
-  // handler for data persistence using local storage
-  const handleCache = () => {
-    if (ls.get(page)) {
-    } else {
-      ls.set(page, repos);
-    }
-  };
-
   // updates local storage when flag state changes; called in 'repo' child component
-  const updateCachedFlag = (isFlagged, index) => {
-    console.log("updating flag");
-    let tempRepos = ls.get(page);
-    tempRepos[index].flagged = isFlagged;
-    ls.set(page, tempRepos);
+  const updateCachedFlag = (index) => {
+    const updatedRepos = [...repos];  // new array copy
+    const repo = updatedRepos[index];
+    repo.flagged = !repo.flagged;
+    updatedRepos[index] = repo;
+    ls.set(page, updatedRepos);
+    setRepos(updatedRepos);
   };
 
-  // get repo data on pagination
-  useEffect(() => {
-    if (page > 0) handleRepos();
-  }, [page]);
 
-  // handle local storage updates when repos are updated
+  // get repos data from local storage when accessing a page
+  // fetch new data from resource if no cached data found
   useEffect(() => {
-    if (repos.length > 0) {
-      handleCache();
-      console.log(repos);
+    if (ls.get(page)) {
+      setRepos(ls.get(page));
+    } else {
+      console.log('fetching')
+      fetchRepos(page);
     }
-  }, [repos]);
+  }, [page]);
 
   return (
     <div id="app">
@@ -81,18 +78,19 @@ function App() {
             handlePagination(page - 1);
           }}
         >
-          <span class="material-icons">keyboard_arrow_left</span>
+          <span className="material-icons">keyboard_arrow_left</span>
         </button>
         <button
           onClick={(e) => {
             handlePagination(page + 1);
           }}
         >
-          <span class="material-icons">keyboard_arrow_right</span>
+          <span className="material-icons">keyboard_arrow_right</span>
         </button>
       </div>
+      {loading && <span>Loading repos...</span>}
       <ul>
-        {repos.length > 0 &&
+        {!loading && repos.length > 0 &&
           repos.map((repo, index) => {
             return (
               <li key={index}>

@@ -14,6 +14,7 @@ The page will reload if you make edits.<br />
   1. What extras you added and why?
      * Updated styling utilizing flexbox, material icons
      * Modular component design that utilizes react hooks and props
+     * Added basic loading state for better user experience
   
   2. What would you have done if you had more time?
      * Add expandable panels for each repository featuring more information

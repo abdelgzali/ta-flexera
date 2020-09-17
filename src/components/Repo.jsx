@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from "react";
 
 function Repo({ repoData, updateCachedFlag, index }) {
-  const [localFlag, setLocalFlag] = useState(repoData.flagged);
-
-  // toggles flag and updates cache and local state
-  const toggleFlag = () => {
-    const tempFlag = !localFlag;
-    setLocalFlag(tempFlag);
-    updateCachedFlag(tempFlag, index);
-  };
-
-  // updates local state on render
-  useEffect(() => {
-    setLocalFlag(repoData.flagged);
-  }, [repoData]);
 
   return (
     <div className="repo">
@@ -25,8 +12,8 @@ function Repo({ repoData, updateCachedFlag, index }) {
         </figcaption>
       </figure>
       <span
-        className={localFlag ? "material-icons star active" : "material-icons star"}
-        onClick={(e) => toggleFlag()}
+        className={repoData.flagged ? "material-icons star active" : "material-icons star"}
+        onClick={(e) => updateCachedFlag(index)}
       >
         star
       </span>
